@@ -1,0 +1,171 @@
+import schedule
+import time
+
+#=============== 1. Baseline Collection Job ==================
+
+from services.prometheus_service import (
+    PrometheusService
+)
+
+from services.baseline_service import (
+    BaselineService
+)
+
+prom = PrometheusService()
+baseline = BaselineService()
+
+cpu_history = {}
+
+
+def collect_baseline():
+
+    results = prom.get_cpu_usage()
+
+    if not results:
+        print("[WARN] No CPU data returned from Prometheus.")
+        return
+
+    for item in results:
+
+        instance = item["metric"]["instance"]
+
+        value = float(
+            item["value"][1]
+        )
+
+        if instance not in cpu_history:
+            cpu_history[instance] = []
+
+        cpu_history[instance].append(
+            value
+        )
+
+        if len(cpu_history[instance]) > 1440:
+            cpu_history[instance].pop(0)
+
+        baseline.update(
+            metric_name="cpu",
+            instance=instance,
+            values=cpu_history[instance]
+        )
+
+      #  print(
+      #      f"[BASELINE] "
+      #      f"{instance} "
+      #      f"CPU={value}"
+      #  )
+
+#cpu_history = []
+
+#def collect_baseline():
+#
+#    result = (prom.get_cpu_usage())
+##    print(f"PROMETHEUS RESULT = {result}")
+#
+#    if not result:
+#        print("No CPU metrics returned from Prometheus")
+#        return
+#
+#    value = float(result[0]["value"][1]) # Only uses first node for Test
+#    cpu_history.append(value)
+#
+#    if len(cpu_history) > 1440:
+#        cpu_history.pop(0)
+#
+#    baseline.update("cpu",cpu_history)
+#
+## During MVP run
+##schedule.every(1).minutes.do(
+##    collect_baseline
+##)
+#
+# During Testing
+schedule.every(10).seconds.do(
+    collect_baseline
+)
+
+#============= 2. Detection Job ===============
+
+from services.metric_detector import (
+    MetricDetector
+)
+
+from services.alert_service import (
+    AlertService
+)
+
+detector = MetricDetector()
+
+alerts = AlertService()
+
+
+def detect_cpu():
+
+    results = prom.get_cpu_usage()
+
+    if not results:
+        return
+
+    for item in results:
+        instance = (item["metric"]["instance"])
+        current = float(item["value"][1])
+        baseline_data = (baseline.get("cpu",instance))
+
+        if not baseline_data:
+            continue
+
+        print(
+        f"[CHECKING] "
+        f"{instance} "
+        f"CPU={current}"
+        )
+
+        anomaly = detector.detect(current,baseline_data)
+
+        if anomaly:
+            anomaly["instance"] = (instance)
+            alert = alerts.create(anomaly)
+            print("\n========== ALERT ==========")
+            print(alert)
+            print("===========================\n")
+
+
+
+#def detect_cpu():
+#
+#    if len(cpu_history) < 10:
+#        print("[INFO] Waiting for baseline")
+#        return
+#
+#    current = float(prom.get_cpu_usage()[0]["value"][1])
+#    baseline_data = (baseline.get("cpu"))
+#
+#    if not baseline_data:
+#        print("[INFO] Baseline not ready")
+#        return
+#
+#    anomaly = detector.detect(current,baseline_data)
+#
+#    if anomaly:
+#        alert = alerts.create(anomaly)
+#        print("\n========== ALERT ==========")
+#        print(alert)
+#        print("===========================\n")
+#
+
+# During MVP
+#schedule.every(5).minutes.do(
+#    detect_cpu
+#)
+
+# During Test
+schedule.every(20).seconds.do(
+    detect_cpu
+)
+
+
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
