@@ -15,9 +15,11 @@ prom = PrometheusService()
 baseline = BaselineService()
 
 cpu_history = {}
+memory_history = {}
+network_history = {}
 
 
-def collect_baseline():
+def collect_cpu_baseline():
 
     results = prom.get_cpu_usage()
 
@@ -76,12 +78,68 @@ def collect_baseline():
 #
 ## During MVP run
 ##schedule.every(1).minutes.do(
-##    collect_baseline
+##    collect_cpu_baseline
 ##)
 #
 # During Testing
 schedule.every(10).seconds.do(
-    collect_baseline
+    collect_cpu_baseline
+)
+
+def collect_memory_baseline():
+
+    results = prom.get_memory_usage()
+
+    if not results:
+        return
+
+    for item in results:
+        instance = (item["metric"]["instance"])
+        value = float(item["value"][1])
+
+        if instance not in memory_history:
+            memory_history[instance] = []
+
+        memory_history[instance].append(value)
+
+        if len(memory_history[instance]) > 1440:
+            memory_history[instance].pop(0)
+
+        baseline.update(metric_name="memory",instance=instance,values=memory_history[instance])
+
+
+
+schedule.every(10).seconds.do(
+    collect_memory_baseline
+)
+
+
+
+def collect_network_baseline():
+
+    results = prom.get_network_usage()
+
+    if not results:
+        return
+
+    for item in results:
+        instance = (item["metric"]["instance"])
+        value = float(item["value"][1])
+
+        if instance not in network_history:
+            network_history[instance] = []
+
+        network_history[instance].append(value)
+
+        if len(network_history[instance]) > 1440:
+            network_history[instance].pop(0)
+
+        baseline.update(metric_name="network",instance=instance,values=network_history[instance])
+
+
+
+schedule.every(10).seconds.do(
+    collect_network_baseline
 )
 
 #============= 2. Detection Job ===============
@@ -120,7 +178,7 @@ def detect_cpu():
         f"CPU={current}"
         )
 
-        anomaly = detector.detect(current,baseline_data)
+        anomaly = detector.detect("cpu",current,baseline_data)
 
         if anomaly:
             anomaly["instance"] = (instance)
@@ -162,6 +220,75 @@ def detect_cpu():
 schedule.every(20).seconds.do(
     detect_cpu
 )
+
+def detect_memory():
+
+    results = prom.get_memory_usage()
+
+    if not results:
+        return
+
+    for item in results:
+
+        instance = (item["metric"]["instance"])
+        current = float(item["value"][1])
+        baseline_data = baseline.get("memory",instance)
+
+        if not baseline_data:
+            continue
+        print(
+        f"[CHECKING] "
+        f"{instance} "
+        f"RAM={current}"
+        )
+
+        anomaly = detector.detect("memory",current,baseline_data)
+
+        if anomaly:
+            anomaly["instance"] = (instance)
+            alert = alerts.create(anomaly)
+            print("\n========== ALERT ==========")
+            print(alert)
+            print("===========================\n")
+
+schedule.every(20).seconds.do(
+    detect_memory
+)
+
+
+def detect_network():
+
+    results = prom.get_network_usage()
+
+    if not results:
+        return
+
+    for item in results:
+        instance = (item["metric"]["instance"])
+        current = float(item["value"][1])
+        baseline_data = baseline.get("network",instance)
+
+        if not baseline_data:
+            continue
+        print(
+        f"[CHECKING] "
+        f"{instance} "
+        f"NETWORK={current}"
+        )
+
+        anomaly = detector.detect("network",current,baseline_data)
+
+        if anomaly:
+            anomaly["instance"] = (instance)
+            alert = alerts.create(anomaly)
+            print("\n========== ALERT ==========")
+            print(alert)
+            print("===========================\n")
+
+schedule.every(20).seconds.do(
+    detect_network
+)
+
 
 
 

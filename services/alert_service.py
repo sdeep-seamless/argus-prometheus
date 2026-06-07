@@ -12,6 +12,8 @@ class AlertService:
                 datetime.utcnow(),
             "instance":
                 anomaly["instance"],
+            "metric":
+                anomaly["metric"],
             "type":
                 anomaly["type"],
             "value":

@@ -2,6 +2,7 @@ class MetricDetector:
 
     def detect(
         self,
+        metric_name,
         current_value,
         baseline,
     ):
@@ -27,7 +28,8 @@ class MetricDetector:
         if abs(z_score) > 3:
 
             return {
-                "type": "cpu_spike",
+                "type":f"{metric_name}_anomaly",
+                "metric": metric_name,
                 "value": current_value,
                 "z_score": z_score
             }

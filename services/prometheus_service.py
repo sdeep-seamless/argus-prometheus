@@ -30,7 +30,7 @@ class PrometheusService:
         return prom.custom_query(query)
 
     def get_memory_usage(self):
-
+    
         query = """
         (
           1 -
@@ -41,9 +41,24 @@ class PrometheusService:
           )
         ) * 100
         """
+    
+        return  prom.custom_query(query)
+    
+    
 
-        print(
-            f"[PROMETHEUS] CPU Result: {result}"
+    def get_network_usage(self):
+    
+        query = """
+        sum by(instance)
+        (
+          rate(
+            node_network_receive_bytes_total[5m]
+          )
+          +
+          rate(
+            node_network_transmit_bytes_total[5m]
+          )
         )
-
+        """
+    
         return prom.custom_query(query)
