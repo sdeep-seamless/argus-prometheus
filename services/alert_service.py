@@ -9,7 +9,7 @@ class AlertService:
 
         return {
             "timestamp":
-                datetime.now(timezone.utc).isoformat(), 
+                datetime.now().isoformat(), 
             "instance":
                 anomaly["instance"],
             "metric":

@@ -1,5 +1,6 @@
 import schedule
 import time
+from datetime import datetime
 
 #=============== 1. Baseline Collection Job ==================
 
@@ -11,8 +12,23 @@ from services.baseline_service import (
     BaselineService
 )
 
+from services.metric_detector import (
+    MetricDetector
+)
+
+from services.alert_service import (
+    AlertService
+)
+
+from services.elasticsearch_service import (
+    ElasticsearchService
+)
+
 prom = PrometheusService()
 baseline = BaselineService()
+detector = MetricDetector()
+alerts = AlertService()
+es = ElasticsearchService()
 
 cpu_history = {}
 memory_history = {}
@@ -38,24 +54,17 @@ def collect_cpu_baseline():
         if instance not in cpu_history:
             cpu_history[instance] = []
 
-        cpu_history[instance].append(
-            value
-        )
+        cpu_history[instance].append(value)
 
         if len(cpu_history[instance]) > 1440:
             cpu_history[instance].pop(0)
 
-        baseline.update(
-            metric_name="cpu",
-            instance=instance,
-            values=cpu_history[instance]
-        )
+        baseline.update(metric_name="cpu",instance=instance,values=cpu_history[instance])
 
-      #  print(
-      #      f"[BASELINE] "
-      #      f"{instance} "
-      #      f"CPU={value}"
-      #  )
+        #baseline_data = baseline.get("cpu",instance)
+        #es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":value,"mean":baseline_data["mean"],"std":baseline_data["std"})
+
+
 
 #cpu_history = []
 
@@ -107,6 +116,9 @@ def collect_memory_baseline():
 
         baseline.update(metric_name="memory",instance=instance,values=memory_history[instance])
 
+        #baseline_data = baseline.get("memory",instance)
+        #es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":value,"mean":baseline_data["mean"],"std":baseline_data["std"})
+
 
 
 schedule.every(10).seconds.do(
@@ -136,6 +148,9 @@ def collect_network_baseline():
 
         baseline.update(metric_name="network",instance=instance,values=network_history[instance])
 
+        #baseline_data = baseline.get("network",instance)
+        #es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":value,"mean":baseline_data["mean"],"std":baseline_data["std"})
+
 
 
 schedule.every(10).seconds.do(
@@ -144,17 +159,6 @@ schedule.every(10).seconds.do(
 
 #============= 2. Detection Job ===============
 
-from services.metric_detector import (
-    MetricDetector
-)
-
-from services.alert_service import (
-    AlertService
-)
-
-detector = MetricDetector()
-
-alerts = AlertService()
 
 
 def detect_cpu():
@@ -178,14 +182,20 @@ def detect_cpu():
         f"CPU={current}"
         )
 
-        anomaly = detector.detect("cpu",current,baseline_data)
+
+        anomaly = detector.detect("cpu",current,baseline_data) # type, metric, value, z_score
 
         if anomaly:
             anomaly["instance"] = (instance)
             alert = alerts.create(anomaly)
+            #es.save_alert(alert)
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":"{current}","type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":"{current}","type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
             print("\n========== ALERT ==========")
             print(alert)
             print("===========================\n")
+        else:
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":"{current}","type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":"normal"})
 
 
 
@@ -247,9 +257,14 @@ def detect_memory():
         if anomaly:
             anomaly["instance"] = (instance)
             alert = alerts.create(anomaly)
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":"{current}","type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":"{current}","type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            #es.save_alert(alert)
             print("\n========== ALERT ==========")
             print(alert)
             print("===========================\n")
+        else:
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":"{current}","type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":"normal"]})
 
 schedule.every(20).seconds.do(
     detect_memory
@@ -281,14 +296,21 @@ def detect_network():
         if anomaly:
             anomaly["instance"] = (instance)
             alert = alerts.create(anomaly)
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":"{current}","type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":"{current}","type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            #es.save_alert(alert)
             print("\n========== ALERT ==========")
             print(alert)
             print("===========================\n")
+        else:
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":"{current}","type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":"normal"]})
 
 schedule.every(20).seconds.do(
     detect_network
 )
 
+
+# Call scope
 
 
 

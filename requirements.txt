@@ -1,13 +1,7 @@
 elasticsearch
-
 prometheus-api-client
-
 numpy
-
 pandas
-
 pydantic
-
 python-dotenv
-
 schedule
