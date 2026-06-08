@@ -189,13 +189,13 @@ def detect_cpu():
             anomaly["instance"] = (instance)
             alert = alerts.create(anomaly)
             #es.save_alert(alert)
-            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":"{current}","type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
-            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":"{current}","type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":current,"type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":current,"type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
             print("\n========== ALERT ==========")
             print(alert)
             print("===========================\n")
         else:
-            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":"{current}","type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":"normal"})
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"cpu","value":current,"type":"cpu_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":float(9999)})
 
 
 
@@ -257,14 +257,14 @@ def detect_memory():
         if anomaly:
             anomaly["instance"] = (instance)
             alert = alerts.create(anomaly)
-            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":"{current}","type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
-            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":"{current}","type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":current,"type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":current,"type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
             #es.save_alert(alert)
             print("\n========== ALERT ==========")
             print(alert)
             print("===========================\n")
         else:
-            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":"{current}","type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":"normal"]})
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"memory","value":current,"type":"memory_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":float(9999)})
 
 schedule.every(20).seconds.do(
     detect_memory
@@ -296,14 +296,14 @@ def detect_network():
         if anomaly:
             anomaly["instance"] = (instance)
             alert = alerts.create(anomaly)
-            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":"{current}","type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
-            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":"{current}","type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":current,"type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
+            es.save_alert({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":current,"type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":anomaly["z_score"]})
             #es.save_alert(alert)
             print("\n========== ALERT ==========")
             print(alert)
             print("===========================\n")
         else:
-            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":"{current}","type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":"normal"]})
+            es.save_metric({"@timestamp":datetime.now().isoformat(),"instance":instance,"metric":"network","value":current,"type":"network_anomaly","mean":baseline_data["mean"],"std":baseline_data["std"],"z_score":float(9999)})
 
 schedule.every(20).seconds.do(
     detect_network
